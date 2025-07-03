@@ -4,13 +4,13 @@ body {
   overflow: hidden;
   background: #222;
   color: white;
-  font-family: 'Comic Sans MS', cursive, sans-serif;
+  font-family: 'Comic Sans MS', cursive;
 }
 
 #gameCanvas {
-  background: #eee;
   display: block;
   margin: 0 auto;
+  background-color: #eee;
   border: 5px solid #333;
 }
 
@@ -27,4 +27,5 @@ body {
   display: none;
   font-family: 'Caveat', cursive;
   text-align: center;
+  z-index: 10;
 }
