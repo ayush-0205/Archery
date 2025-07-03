@@ -8,6 +8,17 @@ const target = {
   radius: 50
 };
 
+const bow = {
+  x: 100,
+  y: canvas.height / 2,
+  radius: 40
+};
+
+let isAiming = false;
+let aimX = bow.x;
+let aimY = bow.y;
+let arrows = [];
+
 function drawTarget() {
   for (let i = 3; i >= 1; i--) {
     ctx.beginPath();
@@ -17,18 +28,31 @@ function drawTarget() {
   }
 }
 
-function drawArrow(x, y) {
+function drawBow() {
   ctx.beginPath();
-  ctx.moveTo(0, canvas.height / 2);
-  ctx.lineTo(x, y);
-  ctx.strokeStyle = "black";
-  ctx.lineWidth = 4;
+  ctx.arc(bow.x, bow.y, bow.radius, Math.PI / 2, -Math.PI / 2);
+  ctx.strokeStyle = "brown";
+  ctx.lineWidth = 5;
   ctx.stroke();
+}
 
+function drawArrow(x, y, angle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
   ctx.beginPath();
-  ctx.arc(x, y, 6, 0, Math.PI * 2);
-  ctx.fillStyle = "brown";
+  ctx.moveTo(-20, 0);
+  ctx.lineTo(20, 0);
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(20, 0);
+  ctx.lineTo(15, -5);
+  ctx.lineTo(15, 5);
+  ctx.fillStyle = "black";
   ctx.fill();
+  ctx.restore();
 }
 
 function showPopup(text) {
@@ -37,15 +61,7 @@ function showPopup(text) {
   setTimeout(() => popup.style.display = 'none', 1500);
 }
 
-canvas.addEventListener('click', (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawTarget();
-  drawArrow(x, y);
-
+function checkHit(x, y) {
   const dx = x - target.x;
   const dy = y - target.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
@@ -57,6 +73,77 @@ canvas.addEventListener('click', (e) => {
   } else {
     showPopup("I love you ❤");
   }
+}
+
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawTarget();
+  drawBow();
+
+  arrows.forEach((arrow, index) => {
+    arrow.x += arrow.vx;
+    arrow.y += arrow.vy;
+    arrow.vy += 0.1; // gravity
+
+    drawArrow(arrow.x, arrow.y, arrow.angle);
+
+    if (
+      arrow.x > canvas.width ||
+      arrow.y > canvas.height ||
+      arrow.y < 0
+    ) {
+      arrows.splice(index, 1);
+    }
+
+    if (!arrow.hit && Math.abs(arrow.x - target.x) < target.radius && Math.abs(arrow.y - target.y) < target.radius) {
+      checkHit(arrow.x, arrow.y);
+      arrow.hit = true;
+    }
+  });
+
+  if (isAiming) {
+    ctx.beginPath();
+    ctx.moveTo(bow.x, bow.y);
+    ctx.lineTo(aimX, aimY);
+    ctx.strokeStyle = "gray";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  requestAnimationFrame(update);
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  aimX = e.clientX - rect.left;
+  aimY = e.clientY - rect.top;
+  isAiming = true;
 });
 
-drawTarget();
+canvas.addEventListener('mousemove', (e) => {
+  if (isAiming) {
+    const rect = canvas.getBoundingClientRect();
+    aimX = e.clientX - rect.left;
+    aimY = e.clientY - rect.top;
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  if (isAiming) {
+    const dx = aimX - bow.x;
+    const dy = aimY - bow.y;
+    const angle = Math.atan2(dy, dx);
+    const power = Math.min(Math.sqrt(dx * dx + dy * dy) / 5, 20);
+    arrows.push({
+      x: bow.x,
+      y: bow.y,
+      vx: Math.cos(angle) * power,
+      vy: Math.sin(angle) * power,
+      angle: angle,
+      hit: false
+    });
+    isAiming = false;
+  }
+});
+
+update();
